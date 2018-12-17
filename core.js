@@ -107,18 +107,36 @@
 			for (let d = 0; d < fov; d += column) {
 				for (let dist = 0; dist < width*height; dist++) {
 					let n_dir = dir - fov * .5 + d,
-						point_x = x + Math.cos(this.radian(n_dir)) * dist, point_y = y + Math.sin(this.radian(n_dir)) * dist;
-					if (map[Math.floor(point_x / this.size)][Math.floor(point_y / this.size)]) {
+						point_x = x + Math.cos(this.radian(n_dir)) * dist, point_y = y + Math.sin(this.radian(n_dir)) * dist,
+						val = map[Math.floor(point_x / this.size)][Math.floor(point_y / this.size)];
+					if (val) {
 						let h = height * (this.size / Math.abs(Math.sqrt((point_x - x)**2 + (point_y - y)**2) * Math.cos(this.radian(n_dir - dir)))),
-							offset = Math.sqrt((Math.floor(point_x / this.size + (Math.sin(this.radian(n_dir + 90)) < 0)) * this.size - point_x) ** 2 + (Math.floor(point_y / this.size + (Math.cos(this.radian(n_dir + 90)) > 0)) * this.size - point_y) ** 2);
-						if (map[Math.floor(point_x / this.size)][Math.floor(point_y / this.size)] == 1) {
-							//this.canvas.fillStyle = macro.wall_clr;
-							//this.canvas.fillRect(xoffset + d * range, yoffset + height * .5 - h * .5 + angle, range, h);
+							offset = Math.sqrt((Math.floor(point_x / this.size) * this.size - point_x) ** 2 + (Math.floor(point_y / this.size) * this.size - point_y) ** 2);
+						if (offset > this.size - 1) {
+							offset = Math.sqrt((Math.floor(point_x / this.size + 1) * this.size - point_x) ** 2 + (Math.floor(point_y / this.size) * this.size - point_y) ** 2);
+							if (offset > this.size - 1) offset = Math.sqrt((Math.floor(point_x / this.size) * this.size - point_x) ** 2 + (Math.floor(point_y / this.size + 1) * this.size - point_y) ** 2);
+						}
+						//offset = (offset > this.size) ?  - offset : offset;
+						
+						let texture = img_wall;
+						switch(val) {
+							case 2: 
+								texture = img_door;
+								//console.log(offset);
+								//console.log((this.size + this.size / h * column));
+								//console.log((point_x - x));
+							break;
+						}
+						this.canvas.drawImage(texture, offset, 0, column, texture.height, xoffset + d * range, yoffset + (height - h) * .5 + angle, range, h);
+						
+						//console.log(Math.sin(this.radian(n_dir)) < 0);
+
+						/*if (map[Math.floor(point_x / this.size)][Math.floor(point_y / this.size)] == 1) {
 							this.canvas.drawImage(img_wall, offset, 0, column, img_wall.height, xoffset + d * range, yoffset + (height - h) * .5 + angle, range, h);
 						} else {
 							this.canvas.drawImage(img_door, offset, 0, column, img_door.height, xoffset + d * range, yoffset + (height - h) * .5 + angle, range, h);
 							
-						}
+						}*/
 						//console.log(this.radian(n_dir));
 						//console.log();
 						//console.log(Math.cos(this.radian(n_dir + 90)));
@@ -181,10 +199,10 @@
 		[1, 0, 0, 0, 0, 0, 1],
 		[1, 1, 2, 1, 0, 1, 1],
 		[1, 0, 0, 1, 0, 0, 1],
-		[1, 0, 0, 0, 0, 0, 1],
+		[2, 0, 0, 0, 0, 0, 1],
 		[1, 1, 1, 1, 1, 1, 1]
 	];
-	let cams = [new Camera(64, 64, 0, 0)],
+	let cams = [new Camera(196, 80, 270, 0)],
 		objects = [];
 	let render = new Render('game');
 	let img_item = new Image(), img_wall = new Image(), img_door = new Image();
@@ -218,6 +236,7 @@
 			render.current_time++;
 			cams[0].move(map, render.size);
 			render.render3D(0, cams[0].dir, map, objects.concat(cams), cams[0].x, cams[0].y, 60, render.width, render.height, 0, 0, Math.sin(cams[0].angle * .2) * 8);
+			//render.render2D(map, objects.concat(cams), render.width * .5, 0, .25)
 			//render.render3D(1, cams[1].dir, map, objects.concat(cams), cams[1].x, cams[1].y, 60, render.width * .5, render.height * .5, render.width * .5, 0, 0);
 			//render.render3D(2, cams[2].dir, map, objects.concat(cams), cams[2].x, cams[2].y, 60, render.width * .5, render.height * .5, 0, render.height * .5, 0);
 			//render.render3D(3, cams[3].dir, map, objects.concat(cams), cams[3].x, cams[3].y, 60, render.width * .5, render.height * .5, render.width * .5, render.height * .5, 0);
