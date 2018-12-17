@@ -6,13 +6,9 @@
 		'left': 4,
 		'right': 8,
 		'attack': 16
-	}, key = 0;
-	let macro = {
+	}, key = 0, macro = {
 		'floor_clr': '#3a5275',
-		'round_clr': '#1a103a',
-		'door_clr': '#821020',
-		'player_clr': '#ff8849',
-		'wall_clr': '#0d0704'
+		'round_clr': '#1a103a'
 	}
 	class Obj {
 		constructor(x, y, type) {
@@ -74,11 +70,24 @@
 		}
 	}
 	class Render {
-		constructor(id) {
+		constructor(id, texture) {
 			let canvas_id = document.getElementById(id || 'game');
 			this.width = canvas_id.width, this.height = canvas_id.height, this.canvas = canvas_id.getContext('2d'),
 			this.size = 32, this.current_time = 0;
 			this.canvas.imageSmoothingEnabled = false;
+			this.texture = texture || {}, this.load_texture = 0, this.max_texture = Object.keys(this.texture).length;
+			Object.keys(this.texture).forEach(e => {
+				let value = this.texture[e];
+				this.texture[e] = new Image();
+				this.texture[e].src = value;
+				this.texture[e].onload = () => { this.load_texture++; };
+			});
+
+		}
+		loading(draw) {
+			if (draw != undefined) draw(this.load_texture, this.max_texture);
+			return this.load_texture >= this.max_texture - 1;
+
 		}
 		render2D(map, objects, x, y, scale) {
 			this.canvas.fillStyle = '#fff';
@@ -98,76 +107,78 @@
 			this.canvas.closePath();
 		}
 		radian(value) { return (value * Math.PI / 180); }
-		render3D(index, dir, map, objects, x, y, fov, width, height, xo, yo, angle) {
-			let stack = [], xoffset = xo || 0, yoffset = yo || 0, column = fov / width, range = width / fov;
-			this.canvas.fillStyle = macro.round_clr;
-			this.canvas.fillRect(xoffset, yoffset, width, height * .5);
-			this.canvas.fillStyle = macro.floor_clr;
-			this.canvas.fillRect(xoffset, yoffset + height * .5, width, height * .5);
-			for (let d = 0; d < fov; d += column) {
-				for (let dist = 0; dist < width*height; dist++) {
-					let n_dir = dir - fov * .5 + d,
-						point_x = x + Math.cos(this.radian(n_dir)) * dist, point_y = y + Math.sin(this.radian(n_dir)) * dist,
-						val = map[Math.floor(point_x / this.size)][Math.floor(point_y / this.size)];
-					if (val) {
-						let h = height * (this.size / Math.abs(Math.sqrt((point_x - x)**2 + (point_y - y)**2) * Math.cos(this.radian(n_dir - dir)))), xo = 0, yo = 0,
-							offset = Math.sqrt((point_x - Math.floor(point_x / this.size + xo) * this.size) ** 2 + (point_y - Math.floor(point_y / this.size + yo) * this.size) ** 2);
-						if (offset > this.size - 1) {
-							xo = 1;
-							if (offset > this.size - 1) yo = 1;
-						}
-						offset = Math.sqrt((point_x - Math.floor(point_x / this.size + xo) * this.size) ** 2 + (point_y - Math.floor(point_y / this.size + yo) * this.size) ** 2);
-						let texture = img_wall;
-						switch(val) {
-							case 2: texture = img_door; break;
-							case 3: texture = img_wall2; break;
-						}
-						this.canvas.drawImage(texture, Math.min(offset, texture.width - column), 0, column, texture.height, xoffset + d * range, yoffset + (height - h) * .5 + angle, range, h);
-						/*for (let n_dist = 10; n_dist < dist; n_dist++) {
-							point_x = x + Math.cos(this.radian(n_dir)) * n_dist;
-							point_y = y + Math.sin(this.radian(n_dir)) * n_dist;
-							for (let i = 0; i < objects.length; i++) {
-								if (point_x >= objects[i].x - 4 && point_x <= objects[i].x + 4 && point_y >= objects[i].y - 4 && point_y <= objects[i].y + 4) {
-									let find = false;
-									for (let k = 0; k < stack.length; k++) {
-										if (stack[k][2] == i) {
-											stack[k][6] = (xoffset + (d + 1) * column) - stack[k][4];
-											stack[k][11] = d - stack[k][6] * .5 / column;
-											find = true;
-											break;
-										}
-									}
-									if (!find) {
-										let size = Math.min(height * (16 / Math.abs(Math.sqrt((objects[i].x - x)**2 + (objects[i].y - y)**2) * Math.cos(this.radian(n_dir - dir)))) * .75, height),
-											index = objects[i].index || 0, ndir = objects[i].dir || 0;
-										stack.push([objects[i].type, n_dist, i, size, xoffset + d * column, yoffset + height * .5 - size * .25 + angle, 0, index, ndir, objects[i].x, objects[i].y, d]);
-									}
-									break;
-								}
+		render3D(index, dir, map, objects, x, y, fov, width, height, xo, yo, angle, load) {
+			if (this.loading(load)) {
+				let stack = [], xoffset = xo || 0, yoffset = yo || 0, column = fov / width, range = width / fov;
+				this.canvas.fillStyle = macro.round_clr;
+				this.canvas.fillRect(xoffset, yoffset, width, height * .5);
+				this.canvas.fillStyle = macro.floor_clr;
+				this.canvas.fillRect(xoffset, yoffset + height * .5, width, height * .5);
+				for (let d = fov; d > -1; d -= column) {
+					for (let dist = 0; dist < width*height; dist++) {
+						let n_dir = dir - fov * .5 + d,
+							point_x = x + Math.cos(this.radian(n_dir)) * dist, point_y = y + Math.sin(this.radian(n_dir)) * dist,
+							val = map[Math.floor(point_x / this.size)][Math.floor(point_y / this.size)];
+						if (val) {
+							let h = height * (this.size / Math.abs(Math.sqrt((point_x - x)**2 + (point_y - y)**2) * Math.cos(this.radian(n_dir - dir)))), xo = 0, yo = 0,
+								offset = Math.sqrt((point_x - Math.floor(point_x / this.size + xo) * this.size) ** 2 + (point_y - Math.floor(point_y / this.size + yo) * this.size) ** 2);
+							if (offset > this.size - 1) {
+								xo = 1;
+								if (offset > this.size - 1) yo = 1;
 							}
-						}*/
-						break;
+							offset = Math.sqrt((point_x - Math.floor(point_x / this.size + xo) * this.size) ** 2 + (point_y - Math.floor(point_y / this.size + yo) * this.size) ** 2);
+							let texture = this.texture.wall;
+							switch(val) {
+								case 2: texture = this.texture.door; break;
+								case 3: texture = this.texture.wall2; break;
+							}
+							this.canvas.drawImage(texture, Math.min(offset, texture.width - column), 0, column, texture.height, xoffset + d * range, yoffset + (height - h) * .5 + angle, range, h);
+							/*for (let n_dist = 10; n_dist < dist; n_dist++) {
+								point_x = x + Math.cos(this.radian(n_dir)) * n_dist;
+								point_y = y + Math.sin(this.radian(n_dir)) * n_dist;
+								for (let i = 0; i < objects.length; i++) {
+									if (point_x >= objects[i].x - 4 && point_x <= objects[i].x + 4 && point_y >= objects[i].y - 4 && point_y <= objects[i].y + 4) {
+										let find = false;
+										for (let k = 0; k < stack.length; k++) {
+											if (stack[k][2] == i) {
+												stack[k][6] = (xoffset + (d + 1) * column) - stack[k][4];
+												stack[k][11] = d - stack[k][6] * .5 / column;
+												find = true;
+												break;
+											}
+										}
+										if (!find) {
+											let size = Math.min(height * (16 / Math.abs(Math.sqrt((objects[i].x - x)**2 + (objects[i].y - y)**2) * Math.cos(this.radian(n_dir - dir)))) * .75, height),
+												index = objects[i].index || 0, ndir = objects[i].dir || 0;
+											stack.push([objects[i].type, n_dist, i, size, xoffset + d * column, yoffset + height * .5 - size * .25 + angle, 0, index, ndir, objects[i].x, objects[i].y, d]);
+										}
+										break;
+									}
+								}
+							}*/
+							break;
+						}
 					}
 				}
-			}
-			stack = stack.sort((a, b) => { return b[1] - a[1]; });
-			for (let i = 0; i < stack.length; i++) {
-				if (stack[i][0] != 'camera') {
-					switch(stack[i][0]) {
-						case 'item':
-							let part = (stack[i][11] < fov * .5) ? img_item.width - img_item.width / (stack[i][3] / stack[i][6]) : img_item.width / (stack[i][3] / stack[i][6]) - img_item.width;
-							this.canvas.drawImage(img_item, part, 0, img_item.width, img_item.height, stack[i][4], stack[i][5], stack[i][6], stack[i][3]);
-						break;
-						case 'bullet':
+				stack = stack.sort((a, b) => { return b[1] - a[1]; });
+				for (let i = 0; i < stack.length; i++) {
+					if (stack[i][0] != 'camera') {
+						switch(stack[i][0]) {
+							case 'item':
+								let part = (stack[i][11] < fov * .5) ? img_item.width - img_item.width / (stack[i][3] / stack[i][6]) : img_item.width / (stack[i][3] / stack[i][6]) - img_item.width;
+								this.canvas.drawImage(img_item, part, 0, img_item.width, img_item.height, stack[i][4], stack[i][5], stack[i][6], stack[i][3]);
+							break;
+							case 'bullet':
+								this.canvas.fillStyle = macro.player_clr;
+								this.canvas.fillRect(stack[i][4], stack[i][5], stack[i][6], stack[i][3]);
+							break;
+						}
+					} else {
+						if (!stack[i][7]) {
 							this.canvas.fillStyle = macro.player_clr;
 							this.canvas.fillRect(stack[i][4], stack[i][5], stack[i][6], stack[i][3]);
-						break;
+						} else this.render3D(stack[i][7], stack[i][8], map, objects.concat(cams), stack[i][9], stack[i][10], 60, stack[i][6], stack[i][3], stack[i][4], stack[i][5], 0);
 					}
-				} else {
-					if (!stack[i][7]) {
-						this.canvas.fillStyle = macro.player_clr;
-						this.canvas.fillRect(stack[i][4], stack[i][5], stack[i][6], stack[i][3]);
-					} else this.render3D(stack[i][7], stack[i][8], map, objects.concat(cams), stack[i][9], stack[i][10], 60, stack[i][6], stack[i][3], stack[i][4], stack[i][5], 0);
 				}
 			}
 		}
@@ -182,16 +193,13 @@
 		[2, 0, 0, 0, 0, 0, 1],
 		[1, 1, 1, 1, 1, 1, 1]
 	];
-	let cams = [new Camera(196, 80, 135, 0)],
-		objects = [];
-	let render = new Render('game');
-	let img_item = new Image(), img_wall = new Image(), img_door = new Image(), img_wall2 = new Image();
-
-	img_item.src = './item.png';
-	img_wall.src = './wall.png';
-	img_door.src = './door.png';
-	img_wall2.src = './wall2.png';
-
+	let cams = [new Camera(196, 80, 135, 0)], objects = [],
+		render = new Render('game', {
+			'item': 'item.png',
+			'wall': 'wall.png',
+			'door': 'door.png',
+			'wall2': 'wall2.png'
+		});
 	document.onkeydown = e => {
 		switch(e.keyCode) {
 			case 68: key |= keys.right; break;
@@ -212,17 +220,14 @@
 		}
 		e.preventDefault();
 	}
-	img_wall2.onload = () => {
-		let update = () => {
-			render.current_time++;
-			cams[0].move(map, render.size);
-			render.render3D(0, cams[0].dir, map, objects.concat(cams), cams[0].x, cams[0].y, 60, render.width, render.height, 0, 0, Math.sin(cams[0].angle * .2) * 8);
-			//render.render2D(map, objects.concat(cams), render.width * .5, 0, .25)
-			//render.render3D(1, cams[1].dir, map, objects.concat(cams), cams[1].x, cams[1].y, 60, render.width * .5, render.height * .5, render.width * .5, 0, 0);
-			//render.render3D(2, cams[2].dir, map, objects.concat(cams), cams[2].x, cams[2].y, 60, render.width * .5, render.height * .5, 0, render.height * .5, 0);
-			//render.render3D(3, cams[3].dir, map, objects.concat(cams), cams[3].x, cams[3].y, 60, render.width * .5, render.height * .5, render.width * .5, render.height * .5, 0);
-			window.requestAnimationFrame(update);
-		}
-		update();
+	let loading = (start, end) => {
+		render.canvas.fillStyle = '#f00';
+		render.canvas.fillRect(10, 10, (start/end)*32, 32);
+	}, update = () => {
+		render.current_time++;
+		cams[0].move(map, render.size);
+		render.render3D(0, cams[0].dir, map, objects.concat(cams), cams[0].x, cams[0].y, 60, render.width, render.height, 0, 0, Math.sin(cams[0].angle * .2) * 8, loading);
+		window.requestAnimationFrame(update);
 	}
+	update();
 })();
