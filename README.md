@@ -1,2 +1,2 @@
 # 42
-https://www.myrkyrose.github.io/42
+www.myrkyrose.github.io/42
