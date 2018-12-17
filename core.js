@@ -105,11 +105,11 @@
 			this.canvas.fillStyle = macro.floor_clr;
 			this.canvas.fillRect(xoffset, yoffset + height * .5, width, height * .5);
 			for (let d = 0; d < fov; d += column) {
-				for (let dist = 10; dist < width*height; dist++) {
+				for (let dist = 0; dist < width*height; dist++) {
 					let n_dir = dir - fov * .5 + d,
 						point_x = x + Math.cos(this.radian(n_dir)) * dist, point_y = y + Math.sin(this.radian(n_dir)) * dist;
 					if (map[Math.floor(point_x / this.size)][Math.floor(point_y / this.size)]) {
-						let h = Math.min(height * (this.size / Math.abs(Math.sqrt((point_x - x)**2 + (point_y - y)**2) * Math.cos(this.radian(n_dir - dir)))), height),
+						let h = height * (this.size / Math.abs(Math.sqrt((point_x - x)**2 + (point_y - y)**2) * Math.cos(this.radian(n_dir - dir)))),
 							offset = Math.sqrt((Math.floor(point_x / this.size + (Math.sin(this.radian(n_dir + 90)) < 0)) * this.size - point_x) ** 2 + (Math.floor(point_y / this.size + (Math.cos(this.radian(n_dir + 90)) > 0)) * this.size - point_y) ** 2);
 						if (map[Math.floor(point_x / this.size)][Math.floor(point_y / this.size)] == 1) {
 							//this.canvas.fillStyle = macro.wall_clr;
