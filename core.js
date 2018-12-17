@@ -110,40 +110,20 @@
 						point_x = x + Math.cos(this.radian(n_dir)) * dist, point_y = y + Math.sin(this.radian(n_dir)) * dist,
 						val = map[Math.floor(point_x / this.size)][Math.floor(point_y / this.size)];
 					if (val) {
-						let h = height * (this.size / Math.abs(Math.sqrt((point_x - x)**2 + (point_y - y)**2) * Math.cos(this.radian(n_dir - dir)))),
-							offset = Math.sqrt((Math.floor(point_x / this.size) * this.size - point_x) ** 2 + (Math.floor(point_y / this.size) * this.size - point_y) ** 2);
+						let h = height * (this.size / Math.abs(Math.sqrt((point_x - x)**2 + (point_y - y)**2) * Math.cos(this.radian(n_dir - dir)))), xo = 0, yo = 0,
+							offset = Math.sqrt((point_x - Math.floor(point_x / this.size + xo) * this.size) ** 2 + (point_y - Math.floor(point_y / this.size + yo) * this.size) ** 2);
 						if (offset > this.size - 1) {
-							offset = Math.sqrt((Math.floor(point_x / this.size + 1) * this.size - point_x) ** 2 + (Math.floor(point_y / this.size) * this.size - point_y) ** 2);
-							if (offset > this.size - 1) offset = Math.sqrt((Math.floor(point_x / this.size) * this.size - point_x) ** 2 + (Math.floor(point_y / this.size + 1) * this.size - point_y) ** 2);
+							xo = 1;
+							if (offset > this.size - 1) yo = 1;
 						}
-						//offset = (offset > this.size) ?  - offset : offset;
-						
+						offset = Math.sqrt((point_x - Math.floor(point_x / this.size + xo) * this.size) ** 2 + (point_y - Math.floor(point_y / this.size + yo) * this.size) ** 2);
 						let texture = img_wall;
 						switch(val) {
-							case 2: 
-								texture = img_door;
-								//console.log(offset);
-								//console.log((this.size + this.size / h * column));
-								//console.log((point_x - x));
-							break;
+							case 2: texture = img_door; break;
+							case 3: texture = img_wall2; break;
 						}
-						this.canvas.drawImage(texture, offset, 0, column, texture.height, xoffset + d * range, yoffset + (height - h) * .5 + angle, range, h);
-						
-						//console.log(Math.sin(this.radian(n_dir)) < 0);
-
-						/*if (map[Math.floor(point_x / this.size)][Math.floor(point_y / this.size)] == 1) {
-							this.canvas.drawImage(img_wall, offset, 0, column, img_wall.height, xoffset + d * range, yoffset + (height - h) * .5 + angle, range, h);
-						} else {
-							this.canvas.drawImage(img_door, offset, 0, column, img_door.height, xoffset + d * range, yoffset + (height - h) * .5 + angle, range, h);
-							
-						}*/
-						//console.log(this.radian(n_dir));
-						//console.log();
-						//console.log(Math.cos(this.radian(n_dir + 90)));
-
-						
-						//
-						for (let n_dist = 10; n_dist < dist; n_dist++) {
+						this.canvas.drawImage(texture, Math.min(offset, texture.width - column), 0, column, texture.height, xoffset + d * range, yoffset + (height - h) * .5 + angle, range, h);
+						/*for (let n_dist = 10; n_dist < dist; n_dist++) {
 							point_x = x + Math.cos(this.radian(n_dir)) * n_dist;
 							point_y = y + Math.sin(this.radian(n_dir)) * n_dist;
 							for (let i = 0; i < objects.length; i++) {
@@ -165,7 +145,7 @@
 									break;
 								}
 							}
-						}
+						}*/
 						break;
 					}
 				}
@@ -197,19 +177,20 @@
 		[1, 0, 0, 0, 0, 0, 1],
 		[1, 0, 0, 0, 0, 0, 1],
 		[1, 0, 0, 0, 0, 0, 1],
-		[1, 1, 2, 1, 0, 1, 1],
+		[1, 1, 2, 3, 0, 3, 1],
 		[1, 0, 0, 1, 0, 0, 1],
 		[2, 0, 0, 0, 0, 0, 1],
 		[1, 1, 1, 1, 1, 1, 1]
 	];
-	let cams = [new Camera(196, 80, 270, 0)],
+	let cams = [new Camera(196, 80, 135, 0)],
 		objects = [];
 	let render = new Render('game');
-	let img_item = new Image(), img_wall = new Image(), img_door = new Image();
+	let img_item = new Image(), img_wall = new Image(), img_door = new Image(), img_wall2 = new Image();
 
 	img_item.src = './item.png';
 	img_wall.src = './wall.png';
 	img_door.src = './door.png';
+	img_wall2.src = './wall2.png';
 
 	document.onkeydown = e => {
 		switch(e.keyCode) {
@@ -231,7 +212,7 @@
 		}
 		e.preventDefault();
 	}
-	img_door.onload = () => {
+	img_wall2.onload = () => {
 		let update = () => {
 			render.current_time++;
 			cams[0].move(map, render.size);
