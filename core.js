@@ -1,5 +1,5 @@
 'use strict';
-(() => {
+
 	let keys = {
 		'up': 1,
 		'down': 2,
@@ -48,67 +48,66 @@
 		}
 	}
 	class Item extends Obj {
-		constructor(x, y) { super(x, y, 'item'); }
-	}
-	class Bullet extends Obj {
-		constructor(x, y, dir) {
-			super(x, y, 'bullet');
-			this.dir = dir || 0;
+		constructor(x, y, texture) { 
+			super(x, y, 'item'); 
+			this.texture = texture;
 		}
-		move(map, size) {
-			let xx = Math.cos(this.dir * Math.PI / 180) * 2, yy = Math.sin(this.dir * Math.PI / 180) * 2;
-			if (map[Math.floor((this.x + xx) / size)][Math.floor((this.y + yy) / size)]) {
-				while(!map[Math.floor((this.x + Math.sign(xx)) / size)][Math.floor((this.y + Math.sign(yy)) / size)]) {
-					this.x += Math.sign(xx);
-					this.y += Math.sign(yy);
-				}
-				xx = 0;
-				yy = 0;
+	}
+	class Core42 {
+		constructor(texture) {
+			this.maps = [], this.objects = [],
+			this.camera = [], this.current_map = 0,
+			this.texture = texture || {}, this.load = 0, this.max = Object.keys(this.texture).length;
+			let val = '';
+			Object.keys(this.texture).forEach(e => {
+				val = this.texture[e];
+				this.texture[e] = new Image();
+				this.texture[e].src = val;
+				this.texture[e].onload = () => this.load++;
+				this.texture[e].onerror = (e) => console.log('path error!');
+			});
+			this.keys = {
+				'up': 1,
+				'down': 2,
+				'left': 4,
+				'right': 8,
+				'attack': 16
+			}, this.key = 0;
+		}
+		add_camera(cam) { this.camera.push(cam); }
+		add_object(obj) { this.objects.push(obj); }
+		add_map(map, assoc) { 
+			Object.keys(assoc).forEach(e => { assoc[e] = this.texture[assoc[e]]; });
+			this.maps.push([map, assoc]); 
+		}
+		get map() { return this.maps[this.current_map]; }
+		loading(draw, render) {
+			if (draw != undefined) draw(render, this.load, this.max);
+			return this.load >= this.max;
+		}
+		control(assoc) {
+			document.onkeydown = e => {
+				Object.keys(assoc).forEach(f => { if (e.keyCode == f) this.key |= this.keys[assoc[f]]; });	
+				e.preventDefault();
 			}
-			this.x += xx;
-			this.y += yy;
+			document.onkeyup = e => {
+				Object.keys(assoc).forEach(f => { if (e.keyCode == f) this.key &=~ this.keys[assoc[f]]; });	
+				e.preventDefault();
+			}
 		}
 	}
 	class Render {
-		constructor(id, texture) {
+		constructor(id) {
 			let canvas_id = document.getElementById(id || 'game');
 			this.width = canvas_id.width, this.height = canvas_id.height, this.canvas = canvas_id.getContext('2d'),
 			this.size = 32, this.current_time = 0;
 			this.canvas.imageSmoothingEnabled = false;
-			this.texture = texture || {}, this.load_texture = 0, this.max_texture = Object.keys(this.texture).length;
-			Object.keys(this.texture).forEach(e => {
-				let value = this.texture[e];
-				this.texture[e] = new Image();
-				this.texture[e].src = value;
-				this.texture[e].onload = () => this.load_texture++;
-			});
-
-		}
-		loading(draw) {
-			if (draw != undefined) draw(this.load_texture, this.max_texture);
-			return this.load_texture >= this.max_texture - 1;
-		}
-		render2D(map, objects, x, y, scale) {
-			this.canvas.fillStyle = '#fff';
-			this.canvas.fillRect(x, y, map[0].length * this.size * scale, (map.length - 1) * this.size * scale);
-			this.canvas.fillStyle = '#000';
-			for (let i = 0; i < map.length; i++)
-				for (let j = 0; j < map[i].length; j++)
-					if (map[i][j] == 1) this.canvas.fillRect(x + i * this.size * scale, y + j * this.size * scale, this.size * scale, this.size * scale);
-			this.canvas.fillStyle = '#f00';
-			for (let i = 0; i < objects.length; i++) this.canvas.fillRect(x + objects[i].x * scale - 16 * scale, y + objects[i].y * scale - 16 * scale, 32 * scale, 32 * scale);
-			this.canvas.fillStyle = '#ff5';
-			this.canvas.fillRect(x + camera.x * scale - this.size * scale * .5, y + camera.y * scale - this.size * scale * .5, this.size * scale, this.size * scale);
-			this.canvas.beginPath();
-			this.canvas.moveTo(x + camera.x * scale, y + camera.y * scale);
-			this.canvas.lineTo(x + camera.x * scale + Math.cos(this.radian(camera.dir)) * 400, y + camera.y * scale + Math.sin(this.radian(camera.dir)) * 400);
-			this.canvas.stroke();
-			this.canvas.closePath();
+			this.stack = [];
 		}
 		radian(value) { return (value * Math.PI / 180); }
 		render3D(index, x, y, dir, fov, objects, map, width, height, load, xo, yo, angle) {
-			if (this.loading(load)) {
-				let stack = [], xoffset = xo || 0, yoffset = yo || 0, column = fov / width, range = width / fov;
+			if (load) {
+				let xoffset = xo || 0, yoffset = yo || 0, column = fov / width, range = width / fov;
 				this.canvas.fillStyle = macro.round_clr;
 				this.canvas.fillRect(xoffset, yoffset, width, height * .5);
 				this.canvas.fillStyle = macro.floor_clr;
@@ -117,27 +116,41 @@
 					for (let dist = 0; dist < width*height; dist++) {
 						let n_dir = dir - fov * .5 + d,
 							point_x = x + Math.cos(this.radian(n_dir)) * dist, point_y = y + Math.sin(this.radian(n_dir)) * dist,
-							val = map[Math.floor(point_x / this.size)][Math.floor(point_y / this.size)];
+							val = map[0][Math.floor(point_x / this.size)][Math.floor(point_y / this.size)];
 						if (val) {
 							let h = height * (this.size / Math.abs(Math.sqrt((point_x - x)**2 + (point_y - y)**2) * Math.cos(this.radian(n_dir - dir)))), xo = 0, yo = 0,
 								offset = Math.sqrt((point_x - Math.floor(point_x / this.size + xo) * this.size) ** 2 + (point_y - Math.floor(point_y / this.size + yo) * this.size) ** 2);
 							if (offset > this.size - 1) xo = yo = 1;
 							offset = Math.sqrt((point_x - Math.floor(point_x / this.size + xo) * this.size) ** 2 + (point_y - Math.floor(point_y / this.size + yo) * this.size) ** 2);
-							let texture = this.texture.wall;
-							switch(val) {
-								case 2: texture = this.texture.door; break;
-								case 3: texture = this.texture.wall2; break;
+							let texture = map[1][val];
+							this.stack.push([h, [texture, Math.min(offset, texture.width - column), 0, column, texture.height, xoffset + d * range, yoffset + (height - h) * .5 + angle, range, h]]);
+							for (let n_dist = 0, find = false; n_dist < dist; n_dist++) {
+								for (let i = 0; i < objects.length; i++) {
+									let point_x = x + Math.cos(this.radian(n_dir)) * n_dist, point_y = y + Math.sin(this.radian(n_dir)) * n_dist;
+									if (Math.floor(point_x / (this.size * .5)) == Math.floor(objects[i].x / (this.size * .5)) && Math.floor(point_y / (this.size * .5)) == Math.floor(objects[i].y / (this.size * .5))) {
+										let h = height * ((this.size * .5) / Math.abs(Math.sqrt((Math.floor(objects[i].x / (this.size * .5)) * (this.size * .5) - x)**2 + (Math.floor(objects[i].y / (this.size * .5)) * (this.size * .5) - y)**2) * Math.cos(this.radian(n_dir - dir)))),
+											offset = 8;
+										this.stack.push([h * 2, [objects[i].texture, Math.min(offset, objects[i].texture.width - column), 0, column, objects[i].texture.height, xoffset + d * range, yoffset + (height - h) * .5 + angle, range, h*2]]);
+										find = true;
+										break;
+									}
+								}
+								if (find) break;
 							}
-							stack.push([h, [texture, Math.min(offset, texture.width - column), 0, column, texture.height, xoffset + d * range, yoffset + (height - h) * .5 + angle, range, h]]);
 							break;
 						}
 					}
 				}
-				stack = stack.sort((a, b) => { return a[0] - b[0]; });
-				stack.forEach(e => this.canvas.drawImage(e[1][0], e[1][1], e[1][2], e[1][3], e[1][4], e[1][5], e[1][6], e[1][7], e[1][8]));
+				this.stack = this.stack.sort((a, b) => { return b[0] - a[0]; });
+				for (let i = this.stack.length - 1, val = []; i > -1; i--) {
+					val = this.stack.pop();
+					this.canvas.drawImage(val[1][0], val[1][1], val[1][2], val[1][3], val[1][4], val[1][5], val[1][6], val[1][7], val[1][8]);
+				}
 			}
 		}
 	}
+	
+	/*
 	let map = [
 		[1, 1, 1, 1, 1, 1, 1],
 		[1, 0, 0, 0, 0, 0, 1],
@@ -148,7 +161,7 @@
 		[2, 0, 0, 0, 0, 0, 1],
 		[1, 1, 1, 1, 1, 1, 1]
 	];
-	let cams = [new Camera(196, 80, 135, 0)], objects = [],
+	let cams = [new Camera(64, 96, 270, 0)], objects = [new Item(64, 64)],
 		render = new Render('game', {
 			'item': 'item.png',
 			'wall': 'wall.png',
@@ -187,5 +200,4 @@
 		window.requestAnimationFrame(update);
 	}
 	control();
-	update();
-})();
+	update();*/

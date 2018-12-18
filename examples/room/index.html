@@ -1,0 +1,79 @@
+<!doctype html>
+<html>
+	<head>
+		<title>rooms</title>
+		<style>
+			* {
+				padding: 0;
+				margin: 0;
+			}
+			body { background: #080605; }
+			canvas {
+				width: 50%;
+				image-rendering: pixelated;
+			}
+		</style>
+	</head>
+	<body>
+		<canvas id = 'game' width=200 height=150></canvas>
+		<script src = '../../core.js'></script>
+		<script>
+			let core = new Core42({
+				'item': 'textures/item.png',
+				'wall': 'textures/wall.png',
+				'door': 'textures/door.png',
+				'wall2': 'textures/wall2.png'
+			}), render = new Render('game');
+			core.add_map([
+				[1, 1, 1, 1, 1, 1, 1],
+				[1, 0, 0, 0, 0, 0, 1],
+				[1, 0, 0, 0, 0, 0, 1],
+				[1, 0, 0, 0, 0, 0, 1],
+				[1, 1, 2, 3, 0, 3, 1],
+				[1, 0, 0, 1, 0, 0, 1],
+				[2, 0, 0, 0, 0, 0, 1],
+				[1, 1, 1, 1, 1, 1, 1]
+			], {
+				1: 'wall',
+				2: 'door',
+				3: 'wall2'
+			});
+			core.add_camera(new Camera(64, 96, 270, 0));
+			core.add_object(new Item(64, 64, core.texture.item));
+			core.control({
+				68: 'right',
+				65: 'left',
+				83: 'up',
+				87: 'down',
+				32: 'attack'
+			});
+			let control = (size) => {
+				let hspd = Math.sign((core.key & core.keys.down) - (core.key & core.keys.up));
+				if (hspd) {
+				let xx = Math.cos(core.camera[0].dir * Math.PI / 180) * hspd * 2, yy = Math.sin(core.camera[0].dir * Math.PI / 180) * hspd * 2;
+					if (core.map[0][Math.floor((core.camera[0].x + xx) / size)][Math.floor((core.camera[0].y + yy) / size)]) {
+						while(!core.map[0][Math.floor((core.camera[0].x + Math.sign(xx)) / size)][Math.floor((core.camera[0].y + Math.sign(yy)) / size)]) {
+							core.camera[0].x += Math.sign(xx);
+							core.camera[0].y += Math.sign(yy);
+						}
+						xx = 0;
+						yy = 0;
+						core.camera[0].angle = 0;
+					} else core.camera[0].angle++;
+					core.camera[0].x += xx;
+					core.camera[0].y += yy;
+					
+				} else core.camera[0].angle = 0;
+				core.camera[0].dir += Math.sign((core.key & core.keys.right) - (core.key & core.keys.left)) * 2;
+			}
+			let update = () => {
+				render.current_time++;
+				control(render.size);
+				render.render3D(0, core.camera[0].x, core.camera[0].y, core.camera[0].dir, 60, core.objects, core.map, render.width, render.height, 1, 0, 0, Math.sin(core.camera[0].angle * .2) * 4);
+				window.requestAnimationFrame(update);
+			}
+			update();
+
+		</script>
+	</body>
+</html>
