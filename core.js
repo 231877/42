@@ -80,14 +80,13 @@
 				let value = this.texture[e];
 				this.texture[e] = new Image();
 				this.texture[e].src = value;
-				this.texture[e].onload = () => { this.load_texture++; };
+				this.texture[e].onload = () => this.load_texture++;
 			});
 
 		}
 		loading(draw) {
 			if (draw != undefined) draw(this.load_texture, this.max_texture);
 			return this.load_texture >= this.max_texture - 1;
-
 		}
 		render2D(map, objects, x, y, scale) {
 			this.canvas.fillStyle = '#fff';
@@ -108,14 +107,12 @@
 		}
 		radian(value) { return (value * Math.PI / 180); }
 		render3D(index, x, y, dir, fov, objects, map, width, height, load, xo, yo, angle) {
-		//render3D(index, dir, map, objects, x, y, fov, width, height, xo, yo, angle, load) {
 			if (this.loading(load)) {
 				let xoffset = xo || 0, yoffset = yo || 0, column = fov / width, range = width / fov;
 				this.canvas.fillStyle = macro.round_clr;
 				this.canvas.fillRect(xoffset, yoffset, width, height * .5);
 				this.canvas.fillStyle = macro.floor_clr;
 				this.canvas.fillRect(xoffset, yoffset + height * .5, width, height * .5);
-				
 				for (let d = fov; d > -1; d -= column) {
 					for (let dist = 0; dist < width*height; dist++) {
 						let n_dir = dir - fov * .5 + d,
@@ -124,10 +121,7 @@
 						if (val) {
 							let h = height * (this.size / Math.abs(Math.sqrt((point_x - x)**2 + (point_y - y)**2) * Math.cos(this.radian(n_dir - dir)))), xo = 0, yo = 0,
 								offset = Math.sqrt((point_x - Math.floor(point_x / this.size + xo) * this.size) ** 2 + (point_y - Math.floor(point_y / this.size + yo) * this.size) ** 2);
-							if (offset > this.size - 1) {
-								xo = 1;
-								yo = 1;
-							}
+							if (offset > this.size - 1) xo = yo = 1;
 							offset = Math.sqrt((point_x - Math.floor(point_x / this.size + xo) * this.size) ** 2 + (point_y - Math.floor(point_y / this.size + yo) * this.size) ** 2);
 							let texture = this.texture.wall;
 							switch(val) {
@@ -159,34 +153,37 @@
 			'door': 'door.png',
 			'wall2': 'wall2.png'
 		});
-	document.onkeydown = e => {
-		switch(e.keyCode) {
-			case 68: key |= keys.right; break;
-			case 65: key |= keys.left; break;
-			case 83: key |= keys.up; break;
-			case 87: key |= keys.down; break;
-			case 32: key |= keys.attack; break;
-		}
-		e.preventDefault();
-	}
-	document.onkeyup = e => {
-		switch(e.keyCode) {
-			case 68: key &=~ keys.right; break;
-			case 65: key &=~ keys.left; break;
-			case 83: key &=~ keys.up; break;
-			case 87: key &=~ keys.down; break;
-			case 32: key &=~ keys.attack; break;
-		}
-		e.preventDefault();
-	}
+	
 	let loading = (start, end) => {
 		render.canvas.fillStyle = '#f00';
 		render.canvas.fillRect(10, 10, (start / end) * render.width, render.height);
+	}, control = () => {
+		document.onkeydown = e => {
+			switch(e.keyCode) {
+				case 68: key |= keys.right; break;
+				case 65: key |= keys.left; break;
+				case 83: key |= keys.up; break;
+				case 87: key |= keys.down; break;
+				case 32: key |= keys.attack; break;
+			}
+			e.preventDefault();
+		}
+		document.onkeyup = e => {
+			switch(e.keyCode) {
+				case 68: key &=~ keys.right; break;
+				case 65: key &=~ keys.left; break;
+				case 83: key &=~ keys.up; break;
+				case 87: key &=~ keys.down; break;
+				case 32: key &=~ keys.attack; break;
+			}
+			e.preventDefault();
+		}
 	}, update = () => {
 		render.current_time++;
 		cams[0].move(map, render.size);
 		render.render3D(0, cams[0].x, cams[0].y, cams[0].dir, 60, objects, map, render.width, render.height, loading, 0, 0, Math.sin(cams[0].angle * .2) * 4);
 		window.requestAnimationFrame(update);
 	}
+	control();
 	update();
 })();
