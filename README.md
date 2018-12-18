@@ -1,4 +1,4 @@
 # 42
 
 ## Examples:
-https://myrkyrose.github.io/42/examples/room/index.html
+https://231877.github.io/42/examples/room/

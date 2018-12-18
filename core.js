@@ -92,8 +92,7 @@ class Render {
 		this.width = canvas_id.width, this.height = canvas_id.height, this.canvas = canvas_id.getContext('2d'),
 		this.size = 32, this.current_time = 0;
 		this.canvas.imageSmoothingEnabled = false;
-		this.stack = [];
-		this.floor = floor || '#3a5275', this.round = round || '#1a103a';
+		this.stack = [], this.floor = floor || '#3a5275', this.round = round || '#1a103a';
 	}
 	radian(value) { return (value * Math.PI / 180); }
 	render3D(index, x, y, dir, fov, objects, map, width, height, load, xo, yo, angle) {
