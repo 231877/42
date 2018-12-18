@@ -108,7 +108,7 @@
 		radian(value) { return (value * Math.PI / 180); }
 		render3D(index, x, y, dir, fov, objects, map, width, height, load, xo, yo, angle) {
 			if (this.loading(load)) {
-				let xoffset = xo || 0, yoffset = yo || 0, column = fov / width, range = width / fov;
+				let stack = [], xoffset = xo || 0, yoffset = yo || 0, column = fov / width, range = width / fov;
 				this.canvas.fillStyle = macro.round_clr;
 				this.canvas.fillRect(xoffset, yoffset, width, height * .5);
 				this.canvas.fillStyle = macro.floor_clr;
@@ -128,11 +128,13 @@
 								case 2: texture = this.texture.door; break;
 								case 3: texture = this.texture.wall2; break;
 							}
-							this.canvas.drawImage(texture, Math.min(offset, texture.width - column), 0, column, texture.height, xoffset + d * range, yoffset + (height - h) * .5 + angle, range, h);
+							stack.push([h, [texture, Math.min(offset, texture.width - column), 0, column, texture.height, xoffset + d * range, yoffset + (height - h) * .5 + angle, range, h]]);
 							break;
 						}
 					}
 				}
+				stack = stack.sort((a, b) => { return a[0] - b[0]; });
+				stack.forEach(e => this.canvas.drawImage(e[1][0], e[1][1], e[1][2], e[1][3], e[1][4], e[1][5], e[1][6], e[1][7], e[1][8]));
 			}
 		}
 	}
