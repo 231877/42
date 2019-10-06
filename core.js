@@ -119,7 +119,8 @@ class Render {
 						}]);
 						break;
 					}
-					objects.forEach(e => { // рисование предметов:
+					for (let i = 0, e; i < objects.length; i++) { // рисование предметов:
+						e = objects[i];
 						if (Math.floor(point_x) == e.x && Math.floor(point_y) == e.y) {
 							let h =  height * (this.size / Math.abs(this.distance(x, y, point_x, point_y) * Math.cos(this.radian(n_dir - dir))));
 							this.stack.push([h, {
@@ -130,8 +131,9 @@ class Render {
 								'x': xoffset + d * range, 'y': yoffset + height * .5 - h * .25 + angle,
 								'w': h, 'h': h
 							}]);
+							break;
 						}
-					});
+					}
 				}
 			}
 			this.stack.sort((a, b) => { return a[0] - b[0]; }).forEach(e => this.canvas.drawImage(e[1]['texture'], e[1]['left'], e[1]['top'], e[1]['width'], e[1]['height'], e[1]['x'], e[1]['y'], e[1]['w'], e[1]['h']));
