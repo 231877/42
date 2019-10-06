@@ -8,10 +8,8 @@ class Obj {
 class Camera extends Obj {
 	constructor(x, y, dir, index) {
 		super(x, y, 'camera');
-		//this.x = x || 0, this.y = y || 0,
 		this.angle = 0;
 		this.dir = dir || 0, this.index = index || 0;
-		
 	}
 	move(map, size) {
 		let hspd = Math.sign((key & keys.down) - (key & keys.up));
@@ -113,29 +111,39 @@ class Render {
 						if (offset > this.size - 1) xo = yo = 1;
 						offset = Math.sqrt((point_x - Math.floor(point_x / this.size + xo) * this.size) ** 2 + (point_y - Math.floor(point_y / this.size + yo) * this.size) ** 2);
 						let texture = map[1][val];
-						this.stack.push([h, [texture, Math.min(offset, texture.width - column), 0, column, texture.height, xoffset + d * range, yoffset + (height - h) * .5 + angle, range, h]]);
-						for (let n_dist = 0, find = false; n_dist < dist; n_dist++) {
-							for (let i = 0; i < objects.length; i++) {
-								let point_x = x + Math.cos(this.radian(n_dir)) * n_dist, point_y = y + Math.sin(this.radian(n_dir)) * n_dist;
-								if (Math.floor(point_x / (this.size * .5)) == Math.floor(objects[i].x / (this.size * .5)) && Math.floor(point_y / (this.size * .5)) == Math.floor(objects[i].y / (this.size * .5))) {
-									let h = height * ((this.size * .5) / Math.abs(Math.sqrt((Math.floor(objects[i].x / (this.size * .5)) * (this.size * .5) - x)**2 + (Math.floor(objects[i].y / (this.size * .5)) * (this.size * .5) - y)**2) * Math.cos(this.radian(n_dir - dir)))),
-										offset = 8;
-									this.stack.push([h * 2, [objects[i].texture, Math.min(offset, objects[i].texture.width - column), 0, column, objects[i].texture.height, xoffset + d * range, yoffset + (height - h) * .5 + angle, range, h*2]]);
-									find = true;
-									break;
-								}
-							}
-							if (find) break;
-						}
+						this.stack.push([h, {
+							'texture': texture,
+							'left': Math.min(offset, texture.width - column), 'top': 0,
+							'width': column, 'height': texture.height,
+							'x': xoffset + d * range, 'y': yoffset + (height - h) * .5 + angle,
+							'w': range, 'h': h
+						}]);
 						break;
+					}
+					for (let i = 0; i < objects.length; i++) { // рисование предметов:
+						let point_x = x + Math.cos(this.radian(n_dir)) * dist, point_y = y + Math.sin(this.radian(n_dir)) * dist;
+						if (Math.floor(point_x / (this.size * .5)) == Math.floor(objects[i].x / (this.size * .5)) && Math.floor(point_y / (this.size * .5)) == Math.floor(objects[i].y / (this.size * .5))) {
+							let h = height * ((this.size * .5) / Math.abs(Math.sqrt((Math.floor(objects[i].x / (this.size * .5)) * (this.size * .5) - x)**2 + (Math.floor(objects[i].y / (this.size * .5)) * (this.size * .5) - y)**2) * Math.cos(this.radian(n_dir - dir)))),
+								xo = 0, yo = 0, offset = Math.sqrt((point_x - Math.floor(point_x / this.size + xo) * this.size) ** 2 + (point_y - Math.floor(point_y / this.size + yo) * this.size) ** 2);
+							if (offset > objects[i].texture.width - 1) xo = yo = 1;
+							offset = Math.sqrt((point_x - Math.floor(point_x / this.size + xo) * this.size) ** 2 + (point_y - Math.floor(point_y / this.size + yo) * this.size) ** 2);
+							this.stack.push([h * 2, {
+								'texture': objects[i].texture,
+								'left': point_x - objects[i].x + (n_dir - dir),
+								'top': 0,
+								'width': column, 'height': objects[i].texture.height,
+								'x': xoffset + d * range, 'y': yoffset + (height - h) * .5 + angle,
+								'w': range, 'h': h * 2
+							}]);
+							//console.log(point_x - objects[i].x + (fov - d), point_y - objects[i].y);
+							//fff
+							break;
+						}
 					}
 				}
 			}
-			this.stack = this.stack.sort((a, b) => { return b[0] - a[0]; });
-			for (let i = this.stack.length - 1, val = []; i > -1; i--) {
-				val = this.stack.pop();
-				this.canvas.drawImage(val[1][0], val[1][1], val[1][2], val[1][3], val[1][4], val[1][5], val[1][6], val[1][7], val[1][8]);
-			}
+			this.stack.sort((a, b) => { return a[0] - b[0]; }).forEach(e => this.canvas.drawImage(e[1]['texture'], e[1]['left'], e[1]['top'], e[1]['width'], e[1]['height'], e[1]['x'], e[1]['y'], e[1]['w'], e[1]['h']));
+			this.stack = [];
 		}
 	}
 }
