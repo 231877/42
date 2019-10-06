@@ -20,9 +20,7 @@ class Camera extends Obj {
 					this.x += Math.sign(xx);
 					this.y += Math.sign(yy);
 				}
-				xx = 0;
-				yy = 0;
-				this.angle = 0;
+				this.angle = xx = yy = 0;
 			} else this.angle++;
 			this.x += xx;
 			this.y += yy;
@@ -93,6 +91,7 @@ class Render {
 		this.stack = [], this.floor = floor || '#3a5275', this.round = round || '#1a103a';
 	}
 	radian(value) { return (value * Math.PI / 180); }
+	distance(x1, y1, x2, y2) { return Math.sqrt((x2 - x1) ** 2 + (y2 - y1) ** 2); }
 	render3D(index, x, y, dir, fov, objects, map, width, height, load, xo, yo, angle) {
 		if (load) {
 			let xoffset = xo || 0, yoffset = yo || 0, column = fov / width, range = width / fov;
@@ -100,8 +99,8 @@ class Render {
 			this.canvas.fillRect(xoffset, yoffset, width, height * .5);
 			this.canvas.fillStyle = this.floor;
 			this.canvas.fillRect(xoffset, yoffset + height * .5, width, height * .5);
-			for (let d = fov; d > -1; d -= column) {
-				for (let dist = 0; dist < width*height; dist++) {
+			for (let d = fov; d > -16; d -= column) {
+				for (let dist = 0; dist < width * height; dist++) {
 					let n_dir = dir - fov * .5 + d,
 						point_x = x + Math.cos(this.radian(n_dir)) * dist, point_y = y + Math.sin(this.radian(n_dir)) * dist,
 						val = map[0][Math.floor(point_x / this.size)][Math.floor(point_y / this.size)];
@@ -120,26 +119,19 @@ class Render {
 						}]);
 						break;
 					}
-					for (let i = 0; i < objects.length; i++) { // рисование предметов:
-						let point_x = x + Math.cos(this.radian(n_dir)) * dist, point_y = y + Math.sin(this.radian(n_dir)) * dist;
-						if (Math.floor(point_x / (this.size * .5)) == Math.floor(objects[i].x / (this.size * .5)) && Math.floor(point_y / (this.size * .5)) == Math.floor(objects[i].y / (this.size * .5))) {
-							let h = height * ((this.size * .5) / Math.abs(Math.sqrt((Math.floor(objects[i].x / (this.size * .5)) * (this.size * .5) - x)**2 + (Math.floor(objects[i].y / (this.size * .5)) * (this.size * .5) - y)**2) * Math.cos(this.radian(n_dir - dir)))),
-								xo = 0, yo = 0, offset = Math.sqrt((point_x - Math.floor(point_x / this.size + xo) * this.size) ** 2 + (point_y - Math.floor(point_y / this.size + yo) * this.size) ** 2);
-							if (offset > objects[i].texture.width - 1) xo = yo = 1;
-							offset = Math.sqrt((point_x - Math.floor(point_x / this.size + xo) * this.size) ** 2 + (point_y - Math.floor(point_y / this.size + yo) * this.size) ** 2);
+					objects.forEach(e => { // рисование предметов:
+						if (Math.floor(point_x) == e.x && Math.floor(point_y) == e.y) {
+							let h =  height * (e.texture.height / Math.abs(Math.sqrt((Math.floor(e.x / e.texture.width) * e.texture.width - x)**2 + (Math.floor(e.y / e.texture.width) * e.texture.width - y)**2) * Math.cos(this.radian(n_dir - dir))));
 							this.stack.push([h * 2, {
-								'texture': objects[i].texture,
-								'left': point_x - objects[i].x + (n_dir - dir),
+								'texture': e.texture,
+								'left': 0,
 								'top': 0,
-								'width': column, 'height': objects[i].texture.height,
-								'x': xoffset + d * range, 'y': yoffset + (height - h) * .5 + angle,
-								'w': range, 'h': h * 2
+								'width': e.texture.width, 'height': e.texture.height,
+								'x': xoffset + d * range, 'y': yoffset + height * .5 - h * .25 + angle,
+								'w': h, 'h': h
 							}]);
-							//console.log(point_x - objects[i].x + (fov - d), point_y - objects[i].y);
-							//fff
-							break;
 						}
-					}
+					});
 				}
 			}
 			this.stack.sort((a, b) => { return a[0] - b[0]; }).forEach(e => this.canvas.drawImage(e[1]['texture'], e[1]['left'], e[1]['top'], e[1]['width'], e[1]['height'], e[1]['x'], e[1]['y'], e[1]['w'], e[1]['h']));
