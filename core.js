@@ -121,8 +121,8 @@ class Render {
 					}
 					objects.forEach(e => { // рисование предметов:
 						if (Math.floor(point_x) == e.x && Math.floor(point_y) == e.y) {
-							let h =  height * (e.texture.height / Math.abs(Math.sqrt((Math.floor(e.x / e.texture.width) * e.texture.width - x)**2 + (Math.floor(e.y / e.texture.width) * e.texture.width - y)**2) * Math.cos(this.radian(n_dir - dir))));
-							this.stack.push([h * 2, {
+							let h =  height * (this.size / Math.abs(this.distance(x, y, point_x, point_y) * Math.cos(this.radian(n_dir - dir))));
+							this.stack.push([h, {
 								'texture': e.texture,
 								'left': 0,
 								'top': 0,
