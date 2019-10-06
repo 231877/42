@@ -1,0 +1,103 @@
+<!doctype html>
+<html>
+	<head>
+		<title>multiplayer</title>
+		<style>
+			* {
+				padding: 0;
+				margin: 0;
+			}
+			body { background: #080605; }
+			canvas {
+				width: 100%;
+				image-rendering: pixelated;
+			}
+		</style>
+	</head>
+	<body>
+		<canvas id = 'game' width=600 height=300></canvas>
+		<script src = './socket.io.js'></script>
+		<script src = './core.js'></script>
+		<script>
+			players = {};
+			let socket = io('localhost:3005');
+			socket.on('add_player', data => {
+				players[data.id] = new Item(data.x, data.y, core.texture.player)
+				core.add_object(players[data.id]);
+				console.log('add_player!', data.id);
+			});
+			socket.on('move', data => {
+				players[data.id].x = data.x;
+				players[data.id].y = data.y;
+			});
+			socket.on('delete_player', data => {
+				delete players[data.id];
+			});
+			socket.on('list', data => {
+				Object.keys(data).forEach(e => {
+					players[e] = new Item(data[e].x, data[e].y, core.texture.player);
+					core.add_object(players[e]);
+				});
+			})
+			let core = new Core42({
+				'wall': 'textures/wall.png',
+				'door': 'textures/door.png',
+				'wall2': 'textures/wall2.png',
+				'player': 'textures/player.png',
+				'map': 'textures/smile.png'
+			}), render = new Render('game');
+			core.add_map([
+				[1, 1, 1, 1, 1, 1, 1],
+				[1, 0, 0, 0, 0, 0, 1],
+				[1, 0, 0, 0, 0, 0, 1],
+				[1, 0, 0, 0, 0, 0, 1],
+				[3, 3, 1, 0, 0, 0, 1],
+				[3, 0, 0, 0, 0, 0, 1],
+				[2, 0, 0, 0, 0, 0, 1],
+				[3, 3, 3, 3, 1, 1, 1]
+			], {
+				1: 'wall',
+				2: 'door',
+				3: 'wall2'
+			});
+			core.add_camera(new Camera(64, 96, 270, 0));
+			//core.add_object(new Item(72, 64, core.texture.map));
+			core.control({
+				68: 'right',
+				65: 'left',
+				83: 'up',
+				87: 'down',
+				32: 'attack'
+			});
+			let control = (size) => {
+				let hspd = Math.sign((core.key & core.keys.down) - (core.key & core.keys.up));
+				if (hspd) {
+				let xx = Math.cos(core.camera[0].dir * Math.PI / 180) * hspd * 2, yy = Math.sin(core.camera[0].dir * Math.PI / 180) * hspd * 2;
+					if (core.map[0][Math.floor((core.camera[0].x + xx) / size)][Math.floor((core.camera[0].y + yy) / size)]) {
+						while(!core.map[0][Math.floor((core.camera[0].x + Math.sign(xx)) / size)][Math.floor((core.camera[0].y + Math.sign(yy)) / size)]) {
+							core.camera[0].x += Math.sign(xx);
+							core.camera[0].y += Math.sign(yy);
+						}
+						xx = 0;
+						yy = 0;
+						core.camera[0].angle = 0;
+					} else core.camera[0].angle++;
+					core.camera[0].x += xx;
+					core.camera[0].y += yy;
+					socket.emit('move', {
+						'x': Math.floor(core.camera[0].x),
+						'y': Math.floor(core.camera[0].y)
+					});
+				} else core.camera[0].angle = 0;
+				core.camera[0].dir += Math.sign((core.key & core.keys.right) - (core.key & core.keys.left)) * 2;
+			}
+			let update = () => {
+				render.current_time++;
+				control(render.size);
+				render.render3D(0, core.camera[0].x, core.camera[0].y, core.camera[0].dir, 60, core.objects, core.map, render.width, render.height, 1, 0, 0, Math.sin(core.camera[0].angle * .2) * 4);
+				window.requestAnimationFrame(update);
+			}
+			update();
+		</script>
+	</body>
+</html>

@@ -15,7 +15,7 @@
 		</style>
 	</head>
 	<body>
-		<canvas id = 'game' width=500 height=300></canvas>
+		<canvas id = 'game' width=600 height=300></canvas>
 		<script src = '../../core.js'></script>
 		<script>
 			let core = new Core42({
@@ -23,7 +23,8 @@
 				'wall': 'textures/wall.png',
 				'door': 'textures/door.png',
 				'wall2': 'textures/wall2.png',
-				'player': 'textures/player.png'
+				'player': 'textures/player.png',
+				'map': 'textures/smile.png'
 			}), render = new Render('game');
 			core.add_map([
 				[1, 1, 1, 1, 1, 1, 1],
@@ -41,7 +42,7 @@
 			});
 			core.add_camera(new Camera(64, 96, 270, 0));
 			core.add_object(new Item(64, 64, core.texture.item));
-			core.add_object(new Item(72, 64, core.texture.item));
+			core.add_object(new Item(72, 64, core.texture.map));
 			core.add_object(new Item(54, 96, core.texture.player));
 			core.control({
 				68: 'right',
