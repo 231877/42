@@ -40,28 +40,38 @@ class Item extends Obj {
 	}
 }
 class Core42 {
-	constructor(texture) {
+	constructor(texture, keys) {
 		this.maps = [], this.objects = [],
-		this.camera = [], this.current_map = 0,
-		this.texture = texture || {}, this.load = 0, this.max = Object.keys(this.texture).length;
-		let val = '';
-		Object.keys(this.texture).forEach(e => {
-			val = this.texture[e];
-			this.texture[e] = new Image();
-			this.texture[e].src = val;
-			this.texture[e].onload = () => this.load++;
-			this.texture[e].onerror = (e) => console.log('path error!');
+		this.camera = [], this.current_map = 0, this.key = 0,
+		this.load = 0, this.texture = {}, this.max = (texture || []).length, this.keys = {};
+		(texture || []).forEach(e => {
+			let key = e.split('/').map(f => f.replace('.png', '')).join('.')
+			this.texture[key] = new Image();
+			this.texture[key].src = e;
+			this.texture[key].onload = () => this.load++;
+			this.texture[key].onerror = () => console.log('path error!');
 		});
-		this.keys = {
-			'up': 1,
-			'down': 2,
-			'left': 4,
-			'right': 8,
-			'attack': 16
-		}, this.key = 0;
+		Object.keys(keys).forEach((e, i) => this.keys[keys[e]] = 1 * (i == 0) + (2 ** i) * !(i == 0));
+		window.onkeydown = f => {
+			Object.keys(keys).forEach(e => { if (f.keyCode == e) this.key |= this.keys[keys[e]]; });
+			f.preventDefault();
+		}
+		window.onkeyup = f => {
+			Object.keys(keys).forEach(e => { if (f.keyCode == e) this.key &=~ this.keys[keys[e]]; });
+			f.preventDefault();
+		}
 	}
-	add_camera(cam) { this.camera.push(cam); }
-	add_object(obj) { this.objects.push(obj); }
+	add_object(arg) {
+		if (arguments.length > 1) {
+			for (let i = 0; i < arguments.length; i++) {
+				if (arguments[i] instanceof Camera) this.camera.push(arguments[i]);
+				else this.objects.push(arguments[i]);
+			}
+		} else {
+			if (arg instanceof Camera) this.camera.push(arg);
+			else this.objects.push(arg);
+		}
+	}
 	add_map(map, assoc) { 
 		Object.keys(assoc).forEach(e => { assoc[e] = this.texture[assoc[e]]; });
 		this.maps.push([map, assoc]); 
@@ -70,16 +80,6 @@ class Core42 {
 	loading(draw, render) {
 		if (draw != undefined) draw(render, this.load, this.max);
 		return this.load >= this.max;
-	}
-	control(assoc) {
-		document.onkeydown = e => {
-			Object.keys(assoc).forEach(f => { if (e.keyCode == f) this.key |= this.keys[assoc[f]]; });	
-			e.preventDefault();
-		}
-		document.onkeyup = e => {
-			Object.keys(assoc).forEach(f => { if (e.keyCode == f) this.key &=~ this.keys[assoc[f]]; });	
-			e.preventDefault();
-		}
 	}
 }
 class Render {
@@ -99,39 +99,38 @@ class Render {
 			this.canvas.fillRect(xoffset, yoffset, width, height * .5);
 			this.canvas.fillStyle = this.floor;
 			this.canvas.fillRect(xoffset, yoffset + height * .5, width, height * .5);
-			for (let d = fov; d > -16; d -= column) {
-				for (let dist = 0; dist < width * height; dist++) {
+			for (let d = fov; d > -1; d -= column) {
+				for (let dist = 0; dist < (width * height) / 2; dist++) {
 					let n_dir = dir - fov * .5 + d,
 						point_x = x + Math.cos(this.radian(n_dir)) * dist, point_y = y + Math.sin(this.radian(n_dir)) * dist,
 						val = map[0][Math.floor(point_x / this.size)][Math.floor(point_y / this.size)];
 					if (val) {
 						let h = height * (this.size / Math.abs(Math.sqrt((point_x - x)**2 + (point_y - y)**2) * Math.cos(this.radian(n_dir - dir)))), xo = 0, yo = 0,
-							offset = Math.sqrt((point_x - Math.floor(point_x / this.size + xo) * this.size) ** 2 + (point_y - Math.floor(point_y / this.size + yo) * this.size) ** 2);
+							offset = this.distance(point_x, point_y, Math.floor(point_x / this.size + xo) * this.size, Math.floor(point_y / this.size + yo) * this.size);
 						if (offset > this.size - 1) xo = yo = 1;
-						offset = Math.sqrt((point_x - Math.floor(point_x / this.size + xo) * this.size) ** 2 + (point_y - Math.floor(point_y / this.size + yo) * this.size) ** 2);
-						let texture = map[1][val];
+						offset = this.distance(point_x, point_y, Math.floor(point_x / this.size + xo) * this.size, Math.floor(point_y / this.size + yo) * this.size);
 						this.stack.push([h, {
-							'texture': texture,
-							'left': Math.min(offset, texture.width - column), 'top': 0,
-							'width': column, 'height': texture.height,
+							'texture': map[1][val],
+							'left': offset % (map[1][val].width - column), 'top': 0,
+							'width': column, 'height': map[1][val].height,
 							'x': xoffset + d * range, 'y': yoffset + (height - h) * .5 + angle,
 							'w': range, 'h': h
 						}]);
 						break;
-					}
-					for (let i = 0, e; i < objects.length; i++) { // рисование предметов:
-						e = objects[i];
-						if (Math.floor(point_x) == e.x && Math.floor(point_y) == e.y) {
-							let h =  height * (this.size / Math.abs(this.distance(x, y, point_x, point_y) * Math.cos(this.radian(n_dir - dir))));
-							this.stack.push([h, {
-								'texture': e.texture,
-								'left': 0,
-								'top': 0,
-								'width': e.texture.width, 'height': e.texture.height,
-								'x': xoffset + d * range, 'y': yoffset + height * .5 - h * .25 + angle,
-								'w': h, 'h': h
-							}]);
-							break;
+					} else {
+						for (let i = 0, e; i < objects.length; i++) { // рисование предметов:
+							e = objects[i];
+							if (Math.floor(point_x) == e.x && Math.floor(point_y) == e.y) {
+								let h =  height * (this.size / Math.abs(this.distance(point_x, point_y, x, y) * Math.cos(this.radian(n_dir - dir))));
+								this.stack.push([h, {
+									'texture': e.texture,
+									'left': 0, 'top': 0,
+									'width': e.texture.width, 'height': e.texture.height,
+									'x': xoffset + d * range, 'y': yoffset + height * .5 - h * .25 + angle,
+									'w': h, 'h': h
+								}]);
+								break;
+							}
 						}
 					}
 				}

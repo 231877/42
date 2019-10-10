@@ -18,39 +18,39 @@
 		<canvas id = 'game' width=600 height=300></canvas>
 		<script src = '../../core.js'></script>
 		<script>
-			let core = new Core42({
-				'item': 'textures/item.png',
-				'wall': 'textures/wall.png',
-				'door': 'textures/door.png',
-				'wall2': 'textures/wall2.png',
-				'player': 'textures/player.png',
-				'map': 'textures/smile.png'
+			let core = new Core42([
+				'textures/item.png',
+				'textures/wall.png',
+				'textures/door.png',
+				'textures/wall2.png',
+				'textures/swall.png',
+				'textures/player.png',
+				'textures/smile.png'
+			], {
+				68: 'right', 65: 'left',
+				83: 'up', 87: 'down'
 			}), render = new Render('game');
 			core.add_map([
 				[1, 1, 1, 1, 1, 1, 1],
 				[1, 0, 0, 0, 0, 0, 1],
 				[1, 0, 0, 0, 0, 0, 1],
 				[1, 0, 0, 3, 0, 0, 1],
-				[1, 1, 2, 3, 0, 3, 1],
+				[1, 1, 2, 3, 0, 4, 1],
 				[1, 0, 0, 1, 0, 0, 1],
 				[2, 0, 0, 0, 0, 0, 1],
 				[1, 1, 1, 1, 1, 1, 1]
 			], {
-				1: 'wall',
-				2: 'door',
-				3: 'wall2'
+				1: 'textures.wall',
+				2: 'textures.door',
+				3: 'textures.wall2',
+				4: 'textures.swall'
 			});
-			core.add_camera(new Camera(64, 96, 270, 0));
-			core.add_object(new Item(64, 64, core.texture.item));
-			core.add_object(new Item(72, 64, core.texture.map));
-			core.add_object(new Item(54, 96, core.texture.player));
-			core.control({
-				68: 'right',
-				65: 'left',
-				83: 'up',
-				87: 'down',
-				32: 'attack'
-			});
+			core.add_object(
+				new Camera(64, 96, 270, 0),
+				new Item(64, 64, core.texture['textures.item']),
+				new Item(72, 64, core.texture['textures.smile']),
+				new Item(54, 96, core.texture['textures.player'])
+			);
 			let control = (size) => {
 				let hspd = Math.sign((core.key & core.keys.down) - (core.key & core.keys.up));
 				if (hspd) {
@@ -77,7 +77,6 @@
 				window.requestAnimationFrame(update);
 			}
 			update();
-
 		</script>
 	</body>
 </html>
