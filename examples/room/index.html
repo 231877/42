@@ -54,15 +54,13 @@
 			let control = (size) => {
 				let hspd = Math.sign((core.key & core.keys.down) - (core.key & core.keys.up));
 				if (hspd) {
-				let xx = Math.cos(core.camera[0].dir * Math.PI / 180) * hspd * 2, yy = Math.sin(core.camera[0].dir * Math.PI / 180) * hspd * 2;
+				let xx = Math.cos(render.radian(core.camera[0].dir)) * hspd * 2, yy = Math.sin(render.radian(core.camera[0].dir)) * hspd * 2;
 					if (core.map[0][Math.floor((core.camera[0].x + xx) / size)][Math.floor((core.camera[0].y + yy) / size)]) {
 						while(!core.map[0][Math.floor((core.camera[0].x + Math.sign(xx)) / size)][Math.floor((core.camera[0].y + Math.sign(yy)) / size)]) {
 							core.camera[0].x += Math.sign(xx);
 							core.camera[0].y += Math.sign(yy);
 						}
-						xx = 0;
-						yy = 0;
-						core.camera[0].angle = 0;
+						core.camera[0].angle = xx = yy = 0;
 					} else core.camera[0].angle++;
 					core.camera[0].x += xx;
 					core.camera[0].y += yy;

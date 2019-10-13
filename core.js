@@ -8,29 +8,7 @@ class Obj {
 class Camera extends Obj {
 	constructor(x, y, dir, index) {
 		super(x, y, 'camera');
-		this.angle = 0;
-		this.dir = dir || 0, this.index = index || 0;
-	}
-	move(map, size) {
-		let hspd = Math.sign((key & keys.down) - (key & keys.up));
-		if (hspd) {
-			let xx = Math.cos(this.dir * Math.PI / 180) * hspd * 2, yy = Math.sin(this.dir * Math.PI / 180) * hspd * 2;
-			if (map[Math.floor((this.x + xx) / size)][Math.floor((this.y + yy) / size)]) {
-				while(!map[Math.floor((this.x + Math.sign(xx)) / size)][Math.floor((this.y + Math.sign(yy)) / size)]) {
-					this.x += Math.sign(xx);
-					this.y += Math.sign(yy);
-				}
-				this.angle = xx = yy = 0;
-			} else this.angle++;
-			this.x += xx;
-			this.y += yy;
-			
-		} else this.angle = 0;
-		this.dir += Math.sign((key & keys.right) - (key & keys.left)) * 2;
-		if (key & keys.attack) {
-			objects.push(new Bullet(this.x, this.y, this.dir));
-			key &=~ keys.attack;
-		}
+		this.dir = dir || 0, this.index = index || 0, this.angle = 0;
 	}
 }
 class Item extends Obj {
@@ -49,7 +27,7 @@ class Core42 {
 			this.texture[key] = new Image();
 			this.texture[key].src = e;
 			this.texture[key].onload = () => this.load++;
-			this.texture[key].onerror = () => console.log('path error!');
+			this.texture[key].onerror = () => console.error('path error: ' + e + '!');
 		});
 		Object.keys(keys).forEach((e, i) => this.keys[keys[e]] = 1 * (i == 0) + (2 ** i) * !(i == 0));
 		window.onkeydown = f => {
@@ -63,18 +41,13 @@ class Core42 {
 	}
 	add_object(arg) {
 		if (arguments.length > 1) {
-			for (let i = 0; i < arguments.length; i++) {
-				if (arguments[i] instanceof Camera) this.camera.push(arguments[i]);
-				else this.objects.push(arguments[i]);
-			}
-		} else {
-			if (arg instanceof Camera) this.camera.push(arg);
-			else this.objects.push(arg);
-		}
+			for (let i = 0; i < arguments.length; i++)
+				arguments[i] instanceof Camera ? this.camera.push(arguments[i]) : this.objects.push(arguments[i]);
+		} else arg instanceof Camera ? this.camera.push(arg) : this.objects.push(arg);
 	}
 	add_map(map, assoc) { 
 		Object.keys(assoc).forEach(e => { assoc[e] = this.texture[assoc[e]]; });
-		this.maps.push([map, assoc]); 
+		this.maps.push([map, assoc]);
 	}
 	get map() { return this.maps[this.current_map]; }
 	loading(draw, render) {
@@ -107,8 +80,10 @@ class Render {
 					if (val) {
 						let h = height * (this.size / Math.abs(Math.sqrt((point_x - x)**2 + (point_y - y)**2) * Math.cos(this.radian(n_dir - dir)))), xo = 0, yo = 0,
 							offset = this.distance(point_x, point_y, Math.floor(point_x / this.size + xo) * this.size, Math.floor(point_y / this.size + yo) * this.size);
-						if (offset > this.size - 1) xo = yo = 1;
-						offset = this.distance(point_x, point_y, Math.floor(point_x / this.size + xo) * this.size, Math.floor(point_y / this.size + yo) * this.size);
+						if (offset > this.size - 1) {
+							xo = yo = 1;
+							offset = this.distance(point_x, point_y, Math.floor(point_x / this.size + xo) * this.size, Math.floor(point_y / this.size + yo) * this.size);
+						}
 						this.stack.push([h, {
 							'texture': map[1][val],
 							'left': offset % (map[1][val].width - column), 'top': 0,
@@ -126,7 +101,7 @@ class Render {
 									'texture': e.texture,
 									'left': 0, 'top': 0,
 									'width': e.texture.width, 'height': e.texture.height,
-									'x': xoffset + d * range, 'y': yoffset + height * .5 - h * .25 + angle,
+									'x': xoffset + d * range - h / 2, 'y': yoffset + height * .5 - h * .25 + angle,
 									'w': h, 'h': h
 								}]);
 								break;
