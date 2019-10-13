@@ -1,20 +1,15 @@
 'use strict';
 
 class Obj {
-	constructor(x, y, type) {
-		this.x = x || 0, this.y = y || 0, this.type = type || '';
+	constructor(x, y, texture) {
+		this.x = x || 0, this.y = y || 0;
+		this.texture = texture;
 	}
 }
 class Camera extends Obj {
 	constructor(x, y, dir, index) {
-		super(x, y, 'camera');
+		super(x, y);
 		this.dir = dir || 0, this.index = index || 0, this.angle = 0;
-	}
-}
-class Item extends Obj {
-	constructor(x, y, texture) { 
-		super(x, y, 'item'); 
-		this.texture = texture;
 	}
 }
 class Core42 {
@@ -101,7 +96,7 @@ class Render {
 									'texture': e.texture,
 									'left': 0, 'top': 0,
 									'width': e.texture.width, 'height': e.texture.height,
-									'x': xoffset + d * range - h / 2, 'y': yoffset + height * .5 - h * .25 + angle,
+									'x': xoffset + d * range - h / 2, 'y': yoffset + height * .5 - h * .5 + angle,
 									'w': h, 'h': h
 								}]);
 								break;
